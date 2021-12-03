@@ -1,7 +1,7 @@
 <?php
 declare (strict_types=1);
 
-namespace App\Support\Validation\Rules;
+namespace Intoy\HebatSupport\Validation\Rules;
 
 class Same extends Rule 
 {
