@@ -25,7 +25,7 @@ class Min extends Rule
 
         if(!$true)
         {
-            $this->message="minimal ".$min." ";
+            $this->message="minimal ".$min." karakter";
         }
 
         return $true;
