@@ -15,6 +15,6 @@
     ],
     "require": {
         "psr/http-message": "^1.0",
-        "intoy/hebat-support": "^0.0.4"
+        "intoy/hebat-support": "^0.0.5"
     }
 }
