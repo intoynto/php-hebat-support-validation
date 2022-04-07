@@ -5,7 +5,7 @@ namespace Intoy\HebatSupport\Validation\Rules;
 
 class Integer extends Rule 
 {
-    protected $message="sebagai angka";
+    protected $message="harus sebagai angka";
     
     protected function validateValue($value, string $key): bool
     {
