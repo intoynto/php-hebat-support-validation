@@ -1,67 +1,127 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Intoy\HebatSupport\Validation\Validator;
+use Intoy\HebatSupport\Validation\Exceptions\MissingRequiredParameterException;
 
-abstract class Rule {
-    
+abstract class Rule
+{
+    /** @var string */
+    protected $key;
+
+    /** @var \Intoy\HebatSupport\Validation\Attribute|null */
+    protected $attribute;
+
+    /** @var \Intoy\HebatSupport\Validation\Validation|null */
+    protected $validation;
+
+    /** @var bool */
+    protected $implicit = false;
+
     /** @var array */
     protected $params = [];
 
-    /**
-     * fillableParams
-     * @var array 
-     */
-    protected $fillableParams=[];   
+    /** @var array */
+    protected $paramsTexts = [];
 
-    /**
-     * Value
-     */
-    protected $value=null;
-
-
-    /**
-     * Array value PsrHttp Request -> getQueryParam or getParseBody
-     * @var array $parseBody
-     */
-    protected $parseBody=[];
-
-    /**
-     * Param modify
-     * @bool
-     */
-    protected $modified=false;
-
+    /** @var array */
+    protected $fillableParams = [];
 
     /** @var string */
-    protected $message = "tidak valid.";
+    protected $message = ":attribute tidak valid";
 
+    abstract public function check($value): bool;
 
     /**
-     * @var Validator $validator
+     * Set Validation class instance
+     * @param \Intoy\HebatSupport\Validation\Validation $validation
+     * @return void
      */
-    protected $validator;
-
-
-    public function __construct(Validator $validator)
+    public function setValidation($validation)
     {
-        $this->validator=$validator;        
+        $this->validation = $validation;
+    }
+
+    /**
+     * Set key
+     * @param string $key
+     * @return void
+     */
+    public function setKey($key)
+    {
+        $this->key = $key;
+    }
+
+    /**
+     * Get key
+     * @return string
+     */
+    public function getKey()
+    {
+        return $this->key ?: get_class($this);
+    }
+
+    /**
+     * Set attribute
+     * @param \Intoy\HebatSupport\Validation\Attribute $attribute
+     * @return void
+     */
+    public function setAttribute($attribute)
+    {
+        $this->attribute = $attribute;
+    }
+
+    /**
+     * Get attribute
+     *
+     * @return \Intoy\HebatSupport\Validation\Attribute|null
+     */
+    public function getAttribute()
+    {
+        return $this->attribute;
+    }
+
+    /**
+     * Get parameters
+     * @return array
+     */
+    public function getParameters()
+    {
+        return $this->params;
+    }
+
+    /**
+     * Set params
+     * @param array $params
+     * @return \Intoy\HebatSupport\Validation\Rule
+     */
+    public function setParameters(array $params)
+    {
+        $this->params = array_merge($this->params, $params);
+        return $this;
+    }
+
+    /**
+     * Set parameters
+     * @param string $key
+     * @param mixed $value
+     * @return \Intoy\HebatSupport\Validation\Rule
+     */
+    public function setParameter(string $key, $value)
+    {
+        $this->params[$key] = $value;
+        return $this;
     }
 
     /**
      * Fill $params to $this->params
-     *
      * @param array $params
-     * @return Rule
+     * @return \Intoy\HebatSupport\Validation\Rule
      */
-    public function setParameters(array $params): Rule
+    public function fillParameters($params)
     {
         foreach ($this->fillableParams as $key) {
-            if (empty($params)) 
-            {
+            if (empty($params)) {
                 break;
             }
             $this->params[$key] = array_shift($params);
@@ -70,112 +130,88 @@ abstract class Rule {
     }
 
     /**
-     * @param Request|array
-     */
-    protected function requestParams($inputs)
-    {
-        if($inputs instanceof Request)        
-        {
-            return strtolower((string)$inputs->getMethod())==='get'?$inputs->getQueryParams():$inputs->getParsedBody();
-        }
-        elseif(is_array($inputs))
-        {
-            return $inputs;            
-        }
-        else {
-            throw new \InvalidArgumentException(sprintf('Invalid %s request input. Request must be %s or array.',gettype($inputs),Request::class));
-        }
-    }
-
-
-    protected function checkParameters(array $params)
-    {
-        foreach ($params as $param) 
-        {
-            if (!isset($this->params[$param])) {                
-                throw new \InvalidArgumentException(sprintf("Missing required parameter '%s' on rule '%s'",$param,get_class($this)));
-            }
-        }
-    }
-
-
-    /**
-     * @param Request|array $input
-     * @param string $key
-     * @return bool
-     * @throws \InvalidArgumentException
-     */
-    public function validate($inputs,string $key):bool
-    {
-        
-        $this->parseBody=$this->requestParams($inputs);
-        $values=$this->parseBody;
-
-        $this->modified=false;
-        $isset=isset($values[$key]);
-        $value=$isset?$values[$key]:$this->value; // null
-        $valid=$this->validateValue($value, $key);
-        if($valid && !$this->modified)
-        {
-            if(is_string($value))
-            {
-                $value=trim((string)$value);
-            }
-            $this->value=$value;
-        }
-
-        return $valid;
-    }
-
-
-
-    /**
-     * @param string $key
-     * @return bool 
-     */
-    protected function isEmptyValue($key)
-    {
-        $value=isset($this->parseBody[$key])?$this->parseBody[$key]:null;
-        $rule=new Required($this->validator);
-        return false===$rule->validateValue($value,$key);
-    }
-
-
-    /**
-     * Get Is Modify value
-     * @return boolean
-     */
-    public function isModified()
-    {
-        return $this->modified;
-    }
-
-
-    /**
-     * @param mixed $value
-     * @return bool
-     */
-    abstract protected function validateValue($value, string $key):bool;
-
-
-    /**
      * Get parameter from given $key, return null if it not exists
-     *
      * @param string $key
      * @return mixed
      */
-    public function parameter(string $key)
+    public function parameter($key)
     {
         return isset($this->params[$key])? $this->params[$key] : null;
     }
 
-    public function getValue()
+    /**
+     * Set parameter text that can be displayed in error message using ':param_key'
+     * @param string $key
+     * @param string $text
+     * @return void
+     */
+    public function setParameterText($key, $text)
     {
-        return $this->value;
+        $this->paramsTexts[$key] = $text;
     }
 
+    /**
+     * Get $paramsTexts
+     * @return array
+     */
+    public function getParametersTexts()
+    {
+        return $this->paramsTexts;
+    }
+
+    /**
+     * Check whether this rule is implicit
+     * @return boolean
+     */
+    public function isImplicit()
+    {
+        return $this->implicit;
+    }
+
+    /**
+     * Just alias of setMessage
+     * @param string $message
+     * @return \Intoy\HebatSupport\Validation\Rule
+     */
+    public function message($message)
+    {
+        return $this->setMessage($message);
+    }
+
+    /**
+     * Set message
+     * @param string $message
+     * @return \Intoy\HebatSupport\Validation\Rule
+     */
+    public function setMessage($message)
+    {
+        $this->message = $message;
+        return $this;
+    }
+
+    /**
+     * Get message
+     * @return string
+     */
     public function getMessage()
     {
         return $this->message;
+    }
+
+    /**
+     * Check given $params must be exists
+     *
+     * @param array $params
+     * @return void
+     * @throws \Intoy\HebatSupport\Validation\MissingRequiredParameterException
+     */
+    protected function requireParameters($params)
+    {
+        foreach ($params as $param) {
+            if (!isset($this->params[$param])) {
+                $rule = $this->getKey();
+                throw new MissingRequiredParameterException("Missing required parameter '{$param}' on rule '{$rule}'");
+            }
+        }
     }
 }

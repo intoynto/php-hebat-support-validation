@@ -1,13 +1,21 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class Ip extends Rule 
+class Ip extends Rule
 {
-    protected function validateValue($value, string $key): bool
+
+    /** @var string */
+    protected $message = ":attribute bukan alamat IP yang valid";
+
+    /**
+     * Check the $value is valid
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function check($value): bool
     {
-        if(is_null($value)) return true;
         return filter_var($value, FILTER_VALIDATE_IP) !== false;
     }
 }

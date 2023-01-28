@@ -1,27 +1,50 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class RequiredIf extends Rule 
+class RequiredIf extends Required
 {
-    protected $message="harus diisi";
+    /** @var bool */
+    protected $implicit = true;
 
-    public function setParameters(array $params): Rule
+    /** @var string */
+    protected $message = ":attribute harus diisi";
+
+    /**
+     * Given $params and assign the $this->params
+     *
+     * @param array $params
+     * @return self
+     */
+    public function fillParameters($params)
     {
         $this->params['field'] = array_shift($params);
         $this->params['values'] = $params;
-        return $this;    
+        return $this;
     }
 
-    protected function validateValue($value, string $key): bool
+    /**
+     * Check the $value is valid
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function check($value): bool
     {
-        $this->checkParameters(['field', 'values']);
+        $this->requireParameters(['field', 'values']);
+
         $anotherAttribute = $this->parameter('field');
         $definedValues = $this->parameter('values');
-        $anotherValue = $this->validator->getValidValue($anotherAttribute);
-        $required=in_array($anotherValue, $definedValues);
-        $true=$required?Required::isValueable($value):true;
-        return $true;
+        $anotherValue = $this->getAttribute()->getValue($anotherAttribute);
+
+        $validator = $this->validation->getValidator();
+        $requiredValidator = $validator('required');
+
+        if (in_array($anotherValue, $definedValues)) {
+            $this->setAttributeAsRequired();
+            return $requiredValidator->check($value, []);
+        }
+
+        return true;
     }
 }

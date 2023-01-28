@@ -2,11 +2,11 @@
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class Coordinate extends Rule
+class Ipv6 extends Rule
 {
 
     /** @var string */
-    protected $message = "The :attribute harus numerik koordinat";
+    protected $message = ":attribute bukan Alamat IPv6 yang valid";
 
     /**
      * Check the $value is valid
@@ -16,6 +16,6 @@ class Coordinate extends Rule
      */
     public function check($value): bool
     {
-        return is_numeric($value);
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }
 }

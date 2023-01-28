@@ -1,18 +1,33 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class Required extends Rule 
+use Intoy\HebatSupport\Validation\Traits\{
+    FileTrait,
+};
+
+class Required extends Rule
 {
+    use FileTrait;
+
+    /** @var bool */
+    protected $implicit = true;
+
     /** @var string */
-    protected $message = "harus diisi";
-    
-    public static function isValueable($value):bool
+    protected $message = ":attribute harus diisi";
+
+    /**
+     * Check the $value is valid
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function check($value): bool
     {
-        if((is_null($value) || $value === '' && $value === null))
-        {
-            return false;
+        $this->setAttributeAsRequired();
+
+        if ($this->attribute and $this->attribute->hasRule('uploaded_file')) {
+            return $this->isValueFromUploadedFiles($value) and $value['error'] != UPLOAD_ERR_NO_FILE;
         }
 
         if (is_string($value)) {
@@ -21,12 +36,18 @@ class Required extends Rule
         if (is_array($value)) {
             return count($value) > 0;
         }
-
         return !is_null($value);
-    }    
+    }
 
-    protected function validateValue($value, string $key): bool
+    /**
+     * Set attribute is required if $this->attribute is set
+     *
+     * @return void
+     */
+    protected function setAttributeAsRequired()
     {
-        return static::isValueable($value);
+        if ($this->attribute) {
+            $this->attribute->setRequired(true);
+        }
     }
 }

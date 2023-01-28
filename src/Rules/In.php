@@ -1,13 +1,25 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class In extends Rule 
-{
-    protected $fillableParams=['allowed_values'];
+use Intoy\HebatSupport\Validation\Helper;
 
-    public function setParameters(array $params): Rule
+class In extends Rule
+{
+
+    /** @var string */
+    protected $message = ":attribute hanya memungkinan :allowed_values";
+
+    /** @var bool */
+    protected $strict = false;
+
+    /**
+     * Given $params and assign the $this->params
+     *
+     * @param array $params
+     * @return self
+     */
+    public function fillParameters($params)
     {
         if (count($params) == 1 && is_array($params[0])) {
             $params = $params[0];
@@ -16,16 +28,33 @@ class In extends Rule
         return $this;
     }
 
-    protected function validateValue($value, string $key): bool
+    /**
+     * Set strict value
+     *
+     * @param bool $strict
+     * @return void
+     */
+    public function strict(bool $strict = true)
     {
-        if(is_null($value)) return true;
-        $this->checkParameters(['allowed_values']);
-        $allowedValues =(array)$this->parameter('allowed_values');
-        $true=in_array($value, $allowedValues);
-        if(!$true)
-        {
-            $this->message="yang diperbolehkan hanya (".implode(", ",$allowedValues).")";
-        }
-        return $true;
+        $this->strict = $strict;
+    }
+
+    /**
+     * Check $value is existed
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function check($value): bool
+    {
+        $this->requireParameters(['allowed_values']);
+
+        $allowedValues = $this->parameter('allowed_values');
+
+        $or = $this->validation ? $this->validation->getTranslation('or') : 'or';
+        $allowedValuesText = Helper::join(Helper::wraps($allowedValues, "'"), ', ', ", {$or} ");
+        $this->setParameterText('allowed_values', $allowedValuesText);
+
+        return in_array($value, $allowedValues, $this->strict);
     }
 }

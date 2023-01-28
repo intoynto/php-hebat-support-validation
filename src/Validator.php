@@ -1,284 +1,263 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation;
 
-use Intoy\HebatSupport\Arr;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Intoy\HebatSupport\Validation\Traits\{
+    MessagesTrait,
+    TranslationsTrait,
+};
+
+use Intoy\HebatSupport\Validation\Exceptions\{
+    RuleNotFoundException,
+    RuleQuashException,
+};
+
 use Intoy\HebatSupport\Validation\Rules\Rule;
 
-class Validator {
-    /**
-     * Input 
-     * @var Request|array
-     */
-    protected $input;   
-
-    /**
-     * Rules
-     * @var array $rules
-     */
-    protected $rules=[];
-
-
-    /**
-     * Rules
-     * @var array $alias
-     */
-    protected $alias=[];
-
-    /**
-     * Validators item by rule-rule
-     * @var array 
-     */
-    protected $validators=[];
-
-    /**
-     * Stop Invalid
-     * @var bool
-     */
-    protected $stopIsInvalid=false;
-
+class Validator
+{
+    use MessagesTrait, TranslationsTrait;
 
     /** @var array */
-    protected $validData = [];
+    protected $translations = [];
 
     /** @var array */
-    protected $invalidData = [];
+    protected $validators = [];
+
+    /** @var bool */
+    protected $allowRuleOverride = false;
+
+    /** @var bool */
+    protected $useHumanizedKeys = true;
 
     /**
-     * Get class Constructor Rule
-     * @param string $rule
-     * @return string|null
+     * Constructor     
+     * @param array $messages
+     * @return void
      */
-    protected function getClassConstructorRule(string $rule)
+    public function __construct($messages = [])
     {
-        $baseRules=[
-            'alpha'=>Rules\Alpha::class,
-            'coordinate'=>Rules\Coordinate::class,
-            'date'=>Rules\Date::class,
-            'date_indo'=>Rules\DateIndo::class,
-            'dateindo'=>Rules\DateIndo::class,
-            'digit'=>Rules\Digit::class,
-            'email'=>Rules\Email::class,
-            'in'=>Rules\In::class,
-            'integer'=>Rules\Integer::class,
-            'ip'=>Rules\Ip::class,
-            'max'=>Rules\Max::class,
-            'min'=>Rules\Min::class,
-            'numeric'=>Rules\Numeric::class,
-            'required'=>Rules\Required::class,
-            'requiredif'=>Rules\RequiredIf::class,
-            'required_if'=>Rules\RequiredIf::class,
-            'requiredwith'=>Rules\RequiredWith::class,
-            'required_with'=>Rules\RequiredWith::class,
-            'same'=>Rules\Same::class,
+        $this->messages = $messages;
+        $this->registerBaseValidators();
+    }
+
+
+    /**
+     * Get classname base validator
+     * @return array
+     */
+    protected function getBaseValidators()
+    {
+        $baseValidators = [
+            'coordinate'        => Rules\Coordinate::class,
+            'date'              => Rules\Date::class,
+            'date_indo'         => Rules\DateIndo::class,
+            'dateindo'          => Rules\DateIndo::class,
+            'digit'             => Rules\Digits::class,
+            'digits'            => Rules\Digits::class,
+            'email'             => Rules\Email::class,
+            'in'                => Rules\In::class,
+            'integer'           => Rules\Integer::class,
+            'ip'                => Rules\Ip::class,
+            'ip4'               => Rules\Ipv4::class,
+            'ip6'               => Rules\Ipv6::class,
+            'json'              => Rules\Json::class,
+            'lower'             => Rules\Lowercase::class,
+            'lower_case'        => Rules\Lowercase::class,
+            'lowercase'         => Rules\Lowercase::class,
+            'max'               => Rules\Max::class,
+            'min'               => Rules\Min::class,
+            'notin'             => Rules\NotIn::class,
+            'not_in'            => Rules\NotIn::class,
+            'numeric'           => Rules\Numeric::class,
+            'req'               => Rules\Required::class,
+            'required'          => Rules\Required::class,
+            'requiredif'        => Rules\RequiredIf::class,
+            'required_if'       => Rules\RequiredIf::class,
+            'requiredwith'      => Rules\RequiredWith::class,
+            'required_with'     => Rules\RequiredWith::class,
+            'same'              => Rules\Same::class,
+            'totrim'            => Rules\ToTrim::class,
+            'to_trim'           => Rules\ToTrim::class,
+            'tonull'            => Rules\ToNull::class,
+            'to_null'           => Rules\ToNull::class,
+            'to_remove_space'   => Rules\ToRemoveSpace::class,
+            'toremovespace'     => Rules\ToRemoveSpace::class,
+            'upper'             => Rules\Uppercase::class,
+            'upper_case'        => Rules\Uppercase::class,
+            'uppercase'         => Rules\Uppercase::class,
+            'url'               => Rules\Url::class,
         ];
 
-        return isset($baseRules[$rule])?$baseRules[$rule]:null;
+        return $baseValidators;
     }
-    
 
     /**
-     * Make | Run Validation
-     * @param Request|array
+     * Initialize base validators array
+     * @return void
+     */
+    protected function registerBaseValidators()
+    {
+        $baseValidator=$this->getBaseValidators();
+        foreach ($baseValidator as $key => $validatorClass) {
+            //$validator=new $validatorClass();
+            $this->setValidator($key, $validatorClass);
+        }
+    }
+
+    /**
+     * Register or override existing validator
+     * @param mixed $key
+     * @param string|Rule $rule
+     * @return void
+     */
+    public function setValidator($key, $rule)
+    {
+        $this->validators[$key] = $rule;
+        //$rule->setKey($key); ??
+    }
+
+    /**
+     * Get validator object from given $key
+     * @param mixed $key
+     * @return mixed
+     */
+    public function getValidator($key)
+    {
+        return isset($this->validators[$key]) ? $this->validators[$key] : null;
+    }
+
+    /**
+     * Validate $inputs
+     * @param array $inputs
      * @param array $rules
-     * @param array $alias
+     * @param array $messages
+     * @return Validation
      */
-    public function make($input, array $rules, array $alias=[])
+    public function validate($inputs, $rules, $messages = [])
     {
-        if(empty($rules))
-        {
-            throw new \InvalidArgumentException('Harus menyertakan rules.');
-        }
-        $this->input=$input; // store input
-
-        $this->rules=$rules; // attach rules
-        $this->alias=$alias; // attch alias
-
-        $this->validators=[]; //reset
-        $this->validData=[]; //reset 
-        $this->invalidData=[]; // reset
-
-        foreach($rules as $inputName => $string)
-        {
-            $name=is_numeric($inputName)?(string)$string:$inputName;
-            $pola=is_numeric($inputName)?'':$string;
-            $rules=$this->resolveRules($pola);
-            $this->validators[$name]=$rules;
-        }
+        $validation = $this->make($inputs, $rules, $messages);
+        $validation->validate();
+        return $validation;
     }
 
     /**
-     * @param string $name
-     * @param string $pola
-     * @return array
+     * Given $inputs, $rules and $messages to make the Validation class instance
+     * @param array $inputs
+     * @param array $rules
+     * @param array $messages
+     * @return Validation
      */
-    protected function resolveRules(string $pola)
+    public function make($inputs, $rules, $messages = [])
     {
-        if(empty($pola))
-        {
-            return []; //empty rules
-        }
+        $messages = array_merge($this->messages, $messages);
+        $validation = new Validation($this, $inputs, $rules, $messages);
+        $validation->setTranslations($this->getTranslations());
 
-        $explicitPath = $this->getLeadingExplicitAttributePath($pola);
-        $rules = explode('|', $explicitPath);
-        foreach($rules as $i => $rule)
-        {
-            if(empty($rule))
-            {
-                continue;
-            }
-
-            $params = [];
-            if (is_string($rule)) {
-                list($rulename, $params) = $this->parseRule($rule);
-                $class=$this->getClassConstructorRule((string)$rulename);
-                if(!$class)
-                {
-                    throw new \Exception(sprintf("Validator '%s' is not registered",$rulename));
-                }
-                $validator=$this->createRule($class);
-                $validator->setParameters($params);
-                $resolvedRules[]=$validator;
-            }
-            else {
-                //thowable empty rules
-            }
-        }
-        return $resolvedRules;
+        return $validation;
     }
 
     /**
-     * Get the explicit part of the attribute name.
-     * Adapted from: https://github.com/illuminate/validation/blob/v5.3.23/Validator.php#L2817
-     *
-     * E.g. 'foo.bar.*.baz' -> 'foo.bar'
-     *
-     * Allows us to not spin through all of the flattened data for some operations.
-     *
-     * @param  string  $attributeKey
-     * @return string|null null when root wildcard
-     */
-    protected function getLeadingExplicitAttributePath(string $attributeKey)
-    {
-        return rtrim(explode('*', $attributeKey)[0], '.') ?: null;
-    }
-
-
-    /**
-     * Parse $rule
+     * Magic invoke method to make Rule instance
      *
      * @param string $rule
-     * @return array
+     * @return Rule
+     * @throws RuleNotFoundException
      */
-    protected function parseRule(string $rule): array
+    public function __invoke($rule)
     {
-        $exp = explode(':', $rule, 2);
-        $rulename = $exp[0];
-        if ($rulename !== 'regex') {
-            $params = isset($exp[1])? explode(',', $exp[1]) : [];
-        } else {
-            $params = [$exp[1]];
+        $args = func_get_args();
+        $rule = array_shift($args);
+        $params = $args;
+        $constract = $this->getValidator($rule);
+        if (!$constract) 
+        {
+            throw new RuleNotFoundException("Validator '{$rule}' is not registered", 1);
         }
 
-        return [$rulename, $params];
-    }
-
-    protected function createRule(string $constructor):Rule
-    {
-        return new $constructor($this);
-    }
-
-
-    public function validate()
-    {
-        if(empty($this->validators))
+        $validator=$this->resolveRule($constract);
+        if(!$validator)
         {
-            return;
+            throw new RuleNotFoundException("Validator '{$rule}' is not callable", 1);
         }
 
-        foreach($this->validators as $key => $rules)
-        {
-            if(empty($rules))
-            {
-                $rule=new Rules\DefaultRule($this);
-                $rule->validate($this->input,$key);
-                $this->setValidValue($key,$rule);
-                continue; //next loop
-            }
+        $clonedValidator = clone $validator;
+        $clonedValidator->fillParameters($params);
 
-            foreach($rules as $rule)
+        return $clonedValidator;
+    }
+
+    /**
+     * @param string|Rule
+     * @return null|Rule
+     */
+    protected function resolveRule($rule)
+    {
+        if(is_object($rule)) return $rule;
+        if(is_string($rule) && class_exists($rule)) 
+        {
+            $obj=new $rule();
+            if(method_exists($obj,"setKey"))
             {
-                $valid=$rule->validate($this->input,$key);
-                if(!$valid)
+                $baseValidators=$this->getBaseValidators();
+                $key=array_search($rule,$baseValidators);
+                if($key && is_string($key))
                 {
-                    $this->setNotValidValue($key, $rule);
-                    break;
+                    $key=ucwords((string)$key);
+                    call_user_func_array([$obj,"setKey"],[$key]);
                 }
-                
-                $this->setValidValue($key,$rule);
             }
+            return $obj;
         }
+        return null;
     }
 
-    protected function setValidValue(string $key,Rule $rule)
+
+    /**
+     * Given $ruleName and $rule to add new validator
+     * @param string $ruleName
+     * @param Rule $rule
+     * @return void
+     */
+    public function addValidator($ruleName, $rule)
     {
-        $this->validData[$key]=$rule->getValue(); 
-        if($rule->isModified()) 
-        {
-            $this->input[$key]=$rule->getValue();
+        if (!$this->allowRuleOverride && array_key_exists($ruleName, $this->validators)) {
+            throw new RuleQuashException(
+                "You cannot override a built in rule. You have to rename your rule"
+            );
         }
-        Arr::forget($this->invalidData,$key);
+
+        $this->setValidator($ruleName, $rule);
     }
 
-    public function getAliasKey(string $key)
+
+    /**
+     * Set rule can allow to be overrided
+     * @param boolean $status
+     * @return void
+     */
+    public function allowRuleOverride($status = false)
     {
-        $alias=Arr::get($this->alias,$key);
-        $alias=$alias?$alias:ucfirst(implode(" ",explode("_",(string)$key)));
-        return $alias;
-    }
-
-    protected function setNotValidValue(string $key,Rule $rule)
-    {        
-        $message=$this->getAliasKey($key)." ".$rule->getMessage();
-        $this->invalidData[$key]=$message;
-        Arr::forget($this->validData,$key);
+        $this->allowRuleOverride = $status;
     }
 
 
-    public function getValidValue($key,$default=null)
+    /**
+     * Set this can use humanize keys
+     * @param boolean $useHumanizedKeys
+     * @return void
+     */
+    public function setUseHumanizedKeys($useHumanizedKeys = true)
     {
-        return isset($this->validData[$key])?$this->validData[$key]:$default;
+        $this->useHumanizedKeys = $useHumanizedKeys;
     }
 
-    public function success():bool
+    /**
+     * Get $this->useHumanizedKeys value
+     * @return void
+     */
+    public function isUsingHumanizedKey(): bool
     {
-        return empty($this->invalidData);
-    }
-
-    public function failed():bool
-    {
-        return !$this->success();
-    }
-
-    public function fails():bool
-    {
-        return !$this->success();
-    }
-
-    public function getValidData()
-    {
-        return $this->validData;
-    }
-
-    public function getNotValidData()
-    {
-        return $this->invalidData;
-    }
-
-    public function getErrors()
-    {
-        return $this->invalidData;
+        return $this->useHumanizedKeys;
     }
 }

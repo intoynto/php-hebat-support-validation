@@ -1,38 +1,47 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class RequiredWith extends Rule 
+class RequiredWith extends Required
 {
-    public function setParameters(array $params): Rule
+    /** @var bool */
+    protected $implicit = true;
+
+    /** @var string */
+    protected $message = ":attribute harus diisi";
+
+    /**
+     * Given $params and assign $this->params
+     *
+     * @param array $params
+     * @return self
+     */
+    public function fillParameters($params)
     {
-        $this->params['field'] = $params;       
-        return $this;    
+        $this->params['fields'] = $params;
+        return $this;
     }
 
-    protected function validateValue($value, string $key): bool
+    /**
+     * Check the $value is valid
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function check($value): bool
     {
-        $this->checkParameters(['field']);
-        $anotherAttribute = $this->parameter('field');
+        $this->requireParameters(['fields']);
+        $fields = $this->parameter('fields');
+        $validator = $this->validation->getValidator();
+        $requiredValidator = $validator('required');
 
-        $required=false;
-        $val=null;
-        foreach($anotherAttribute as $field)
-        {
-            $val=$this->validator->getValidValue($field);
-            if(Required::isValueable($val))
-            {
-                $required=true;
-                break;
+        foreach ($fields as $field) {
+            if ($this->validation->hasValue($field)) {
+                $this->setAttributeAsRequired();
+                return $requiredValidator->check($value, []);
             }
         }
 
-        $true=$required?Required::isValueable($value):true;
-        if(!$true)
-        {
-            $this->message='harus ikut disertakan';
-        }
-        return $true;
+        return true;
     }
 }

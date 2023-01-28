@@ -1,19 +1,29 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
 use Intoy\HebatSupport\Validation\Traits\SizeTrait;
 
-class Min extends Rule 
+class Min extends Rule
 {
     use SizeTrait;
 
-    protected $fillableParams=['min'];
+    /** @var string */
+    protected $message = ":attribute minimum :min";
 
-    protected function validateValue($value, string $key): bool
-    {        
-        if(is_null($value)) return true;        
+    /** @var array */
+    protected $fillableParams = ['min'];
+
+    /**
+     * Check the $value is valid
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function check($value): bool
+    {
+        $this->requireParameters($this->fillableParams);
+
         $min = $this->getBytesSize($this->parameter('min'));
         $valueSize = $this->getValueSize($value);
 
@@ -21,13 +31,6 @@ class Min extends Rule
             return false;
         }
 
-        $true=$valueSize >= $min;
-
-        if(!$true)
-        {
-            $this->message="minimal ".$min." karakter";
-        }
-
-        return $true;
+        return $valueSize >= $min;
     }
 }

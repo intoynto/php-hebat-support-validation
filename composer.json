@@ -12,9 +12,5 @@
             "name": "intoynto",
             "email": "intoynto@gmail.com"
         }
-    ],
-    "require": {
-        "psr/http-message": "^1.0",
-        "intoy/hebat-support": "^0.1.3"
-    }
+    ]
 }

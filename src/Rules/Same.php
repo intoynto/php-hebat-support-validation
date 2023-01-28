@@ -1,21 +1,39 @@
 <?php
-declare (strict_types=1);
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class Same extends Rule 
+class Same extends Rule
 {
+
+    /** @var string */
+    protected $message = ":attribute harus sama dengan :field";
+
     /** @var array */
     protected $fillableParams = ['field'];
 
-    protected function validateValue($value, string $key): bool
+    /**
+     * Check the $value is valid
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function check($value): bool
     {
-        $field = $this->parameter('field');
-        $anotherValue=$this->validator->getValidValue($field);
+        $this->requireParameters($this->fillableParams);
 
-        $true=$value==$anotherValue;
-        if(!$true) {
-            $this->message="harus sesuai dengan ".$this->validator->getAliasKey($field);
+        $field = $this->parameter('field');       
+        
+        $anotherValue = $this->getAttribute()->getValue($field);
+
+        $true=$value == $anotherValue;
+
+        if(!$true)
+        {
+            $alias=$this->validation->getAlias($field);
+            if($alias)
+            {
+                $this->message=str_replace(":field",$alias,$this->message);
+            }
         }
 
         return $true;

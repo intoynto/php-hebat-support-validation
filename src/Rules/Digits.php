@@ -2,17 +2,14 @@
 
 namespace Intoy\HebatSupport\Validation\Rules;
 
-class Date extends Rule
+class Digits extends Rule
 {
 
     /** @var string */
-    protected $message = ":attribute format tidak valid";
+    protected $message = ":attribute harus numerik dan memiliki panjang yang tepat :length";
 
     /** @var array */
-    protected $fillableParams = ['format'];
-
-    /** @var array */
-    protected $params = ['format' => 'Y-m-d'];
+    protected $fillableParams = ['length'];
 
     /**
      * Check the $value is valid
@@ -24,7 +21,8 @@ class Date extends Rule
     {
         $this->requireParameters($this->fillableParams);
 
-        $format = $this->parameter('format');
-        return date_create_from_format($format, $value) !== false;
+        $length = (int) $this->parameter('length');
+
+        return !preg_match('/[^0-9]/', $value) && strlen((string) $value) == $length;
     }
 }

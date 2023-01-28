@@ -9,19 +9,21 @@ trait SizeTrait
 
     /**
      * Get size (int) value from given $value
-     *
      * @param int|string $value
      * @return float|false
      */
     protected function getValueSize($value)
     {
-        if (is_int($value)) {
-            return (int) $value;
+        if ($this->getAttribute()
+            && ($this->getAttribute()->hasRule('numeric') || $this->getAttribute()->hasRule('integer'))
+            && is_numeric($value)
+        ) {
+            $value = (float) $value;
         }
-        elseif (is_float($value)) {
+
+        if (is_int($value) || is_float($value)) {
             return (float) $value;
-        }
-        elseif (is_string($value)) {
+        } elseif (is_string($value)) {
             return (float) mb_strlen($value, 'UTF-8');
         } elseif ($this->isUploadedFileValue($value)) {
             return (float) $value['size'];
@@ -34,7 +36,6 @@ trait SizeTrait
 
     /**
      * Given $size and get the bytes
-     *
      * @param string|int $size
      * @return float
      * @throws InvalidArgumentException
@@ -84,11 +85,10 @@ trait SizeTrait
 
     /**
      * Check whether value is from $_FILES
-     *
      * @param mixed $value
      * @return bool
      */
-    public function isUploadedFileValue($value): bool
+    public function isUploadedFileValue($value)
     {
         if (!is_array($value)) {
             return false;
