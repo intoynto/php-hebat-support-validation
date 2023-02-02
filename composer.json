@@ -10,7 +10,8 @@
     "authors": [
         {
             "name": "intoynto",
-            "email": "intoynto@gmail.com"
+            "email": "intoynto@gmail.com",
+            "homepage": "https://github.com/intoynto/php-hebat-support-validation"
         }
     ]
 }

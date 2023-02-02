@@ -49,6 +49,19 @@ class Validator
     protected function getBaseValidators()
     {
         $baseValidators = [
+            'alpha'             => Rules\Alpha::class,
+
+            'alphadash'         => Rules\AlphaDash::class,
+            'alpha_dash'        => Rules\AlphaDash::class,
+
+            'alphaspace'        => Rules\AlphaSpaces::class,
+            'alpha_space'       => Rules\AlphaSpaces::class,
+            'alpha_spaces'      => Rules\AlphaSpaces::class,
+
+            'alphanum'          => Rules\AlphaNum::class,
+            'alpha_num'         => Rules\AlphaNum::class,
+
+            'between'           => Rules\Between::class,
             'coordinate'        => Rules\Coordinate::class,
             'date'              => Rules\Date::class,
             'date_indo'         => Rules\DateIndo::class,
