@@ -16,8 +16,11 @@ class ToBase extends Rule
               ((is_numeric($value) || is_string($value)) && strlen(trim((string)$value))<1);
     }
 
+    /**
+     * check apakah value bernilai
+     */
     public function check($value): bool
     {
-        return $this->isEmpty($value);
+        return is_null($value) || empty($value) || $value==="" || (is_string($value) || is_numeric($value));
     }
 }
