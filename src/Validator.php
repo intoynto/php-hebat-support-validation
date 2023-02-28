@@ -83,6 +83,7 @@ class Validator
             'notin'             => Rules\NotIn::class,
             'not_in'            => Rules\NotIn::class,
             'numeric'           => Rules\Numeric::class,
+            'regex'             => Rules\Regex::class,
             'req'               => Rules\Required::class,
             'required'          => Rules\Required::class,
             'requiredif'        => Rules\RequiredIf::class,

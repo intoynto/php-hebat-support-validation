@@ -6,7 +6,7 @@ class Numeric extends Rule
 {
 
     /** @var string */
-    protected $message = "The :attribute harus numerik";
+    protected $message = ":attribute harus numerik";
 
     /**
      * Check the $value is valid
