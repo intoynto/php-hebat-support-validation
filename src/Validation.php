@@ -710,4 +710,27 @@ class Validation
     {
         return $this->getInvalidData();
     }
+
+    /**
+     * Get invalid pushed rules
+     * @return array|null
+     */
+    public function getInputErrors()
+    {
+        if($this->failed())
+        {
+            $errors=$this->errors->toArray();
+            $error=[];
+            foreach($errors as $key => $value)
+            {
+                $value=is_array($value)?array_values($value):$value;
+                $value=is_array($value)?implode(", ",$value):$value;
+                $error[$key]=$value;
+            }
+
+            return count($error)>0?$error:null;
+        }
+
+        return null;
+    }
 }
