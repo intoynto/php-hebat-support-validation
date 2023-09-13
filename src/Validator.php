@@ -2,6 +2,11 @@
 
 namespace Intoy\HebatSupport\Validation;
 
+use Intoy\HebatSupport\Validation\Interfaces\{
+    ValidationInterface,
+    ValidatorInterface,
+};
+
 use Intoy\HebatSupport\Validation\Traits\{
     MessagesTrait,
     TranslationsTrait,
@@ -14,7 +19,7 @@ use Intoy\HebatSupport\Validation\Exceptions\{
 
 use Intoy\HebatSupport\Validation\Rules\Rule;
 
-class Validator
+class Validator implements ValidatorInterface
 {
     use MessagesTrait, TranslationsTrait;
 

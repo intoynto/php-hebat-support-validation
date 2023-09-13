@@ -2,7 +2,9 @@
 
 namespace Intoy\HebatSupport\Validation;
 
-class ErrorBag
+use Intoy\HebatSupport\Validation\Interfaces\ErrorBagInterface;
+
+class ErrorBag implements ErrorBagInterface
 {
 
     /** @var array */

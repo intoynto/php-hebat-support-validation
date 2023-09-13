@@ -4,6 +4,8 @@ namespace Intoy\HebatSupport\Validation;
 
 use Closure;
 use Intoy\HebatSupport\Validation\Interfaces\{
+    ValidationInterface,
+    ValidatorInterface,
     ModifyValue,
     BeforeValidate,
 };
@@ -18,7 +20,7 @@ use Intoy\HebatSupport\Validation\Rules\{
     Required
 };
 
-class Validation
+class Validation implements ValidationInterface
 {
     use MessagesTrait, TranslationsTrait;
 
@@ -479,6 +481,14 @@ class Validation
         $resolvedRules = [];
         $validatorFactory = $this->getValidator();
 
+        $doCallMerge=function($factory,$rulename,$params){
+            return call_user_func_array($factory, array_merge([$rulename], $params));
+        };
+
+        $doCallback=function($factory,$rule){
+            return call_user_func_array($factory, ['callback', $rule]);
+        };
+
         foreach ($rules as $i => $rule) {
             if (empty($rule)) {
                 continue;
@@ -487,11 +497,13 @@ class Validation
 
             if (is_string($rule)) {
                 list($rulename, $params) = $this->parseRule($rule);
-                $validator = call_user_func_array($validatorFactory, array_merge([$rulename], $params));
+                //$validator = call_user_func_array($validatorFactory, array_merge([$rulename], $params));
+                $validator=$doCallMerge($validatorFactory,$rulename,$params);
             } elseif ($rule instanceof Rule) {
                 $validator = $rule;
             } elseif ($rule instanceof Closure) {
-                $validator = call_user_func_array($validatorFactory, ['callback', $rule]);
+                //$validator = call_user_func_array($validatorFactory, ['callback', $rule]);
+                $validator=$doCallback($validatorFactory,$rule);
             } else {
                 $ruleName = is_object($rule) ? get_class($rule) : gettype($rule);
                 $message = "Rule must be a string, Closure or '".Rule::class."' instance. ".$ruleName." given";
@@ -612,9 +624,9 @@ class Validation
 
     /**
      * Get Validator class instance
-     * @return \Intoy\HebatSupport\Validation\Validator
+     * @return ValidatorInterface
      */
-    public function getValidator(): Validator
+    public function getValidator(): ValidatorInterface
     {
         return $this->validator;
     }
