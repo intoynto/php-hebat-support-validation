@@ -50,14 +50,14 @@ class Validation implements ValidationInterface
 
     /**
      * Constructor
-     * @param \Intoy\HebatSupport\Validation\Validator $validator
+     * @param ValidatorInterface
      * @param array $inputs
      * @param array $rules
      * @param array $messages
      * @return void
      */
     public function __construct(
-        Validator $validator,
+        ValidatorInterface $validator,
         array $inputs,
         array $rules,
         array $messages = []
